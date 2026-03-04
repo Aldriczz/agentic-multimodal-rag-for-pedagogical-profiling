@@ -24,9 +24,10 @@ class AppsScraper:
                         continue
 
                     for application in applications:
-                        app_id = application.get("appId")
-                        if app_id:
-                            results.add(app_id)
+                        if application["genre"] not in Config.EXCLUDE_GENRE:
+                            app_id = application.get("appId")
+                            if app_id:
+                                results.add(app_id)
 
         print(f"Found unique apps count: {len(results)}")
         return results
@@ -45,7 +46,8 @@ class AppsScraper:
                 )
 
                 for application in applications:
-                    results.add(application['appId'])
+                    if application["genre"] not in Config.EXCLUDE_GENRE:
+                        results.add(application['appId'])
             except:
                 continue
             
