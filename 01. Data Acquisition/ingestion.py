@@ -79,24 +79,38 @@ class Ingestion:
     def upsert_app_ocr_caption(ocr_captions : list):
         records = []
 
-        for i, ocr in enumerate(ocr_captions):
-            records.append({
-                "id": f"{ocr['appId']}__ocr_caption__{i}",
-                "appId": ocr["appId"],
-                "content": ocr["caption"] or "",
-            })
+        for ocr in ocr_captions:
+            chunks = Preprocessor.preprocess_app_ocr_captions(ocr)
+            for i, chunk in enumerate(chunks):
+                if len(chunk) == 0:
+                    continue
+                records.append({
+                    "id": f"{ocr['app_id']}__ocr_caption__{i}",
+                    "appId": ocr["app_id"],
+                    "content": chunk,
+                    "screenshotUrl": ocr["screenshot"] or "",
+                })
         
-        Ingestion.batch_upsert(Ingestion.get_index(), Config.APPS_OCR_CAPTIONS_FILENAME, records)
+        Ingestion.batch_upsert(Ingestion.get_index(), Config.APPS_OCR_CAPTIONS_NAMESPACE, records)
 
     def batch_upsert(index, namespace : str, records : list, batch_size : int = 96):
-        for i in tqdm(range(0, len(records), batch_size)):
+        count = 0
+        for i in tqdm(range(0, len(records), batch_size)):  
             batch = records[i:i + batch_size]
             index.upsert_records(
                 namespace=namespace,
                 records=batch
             )
+            count += 1
+            if count % 15 == 0:
+                time.sleep(60)
+
+        print(f"Upserted {count} records to namespace {namespace}")
 
     def upsert_all(apps : list, reviews : list, ocr_captions : list):
+        print("Ingesting app info. . . . . .")
         Ingestion.upsert_app_info(apps)
+        print("Ingesting app reviews. . . . . .")
         Ingestion.upsert_app_reviews(reviews)
+        print("Ingesting app ocr captions. . . . . .")
         Ingestion.upsert_app_ocr_caption(ocr_captions)

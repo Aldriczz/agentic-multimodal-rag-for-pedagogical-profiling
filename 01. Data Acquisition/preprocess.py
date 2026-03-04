@@ -53,7 +53,7 @@ class Preprocessor:
         description = app_info.get("description", "")
 
         text = Preprocessor.enrich_chunk(name, summary, description)
-        text = Preprocessor.clean_text(text, remove_emoji = True)
+        text = Preprocessor.clean_text(str(text), remove_emoji = True)
 
         chunks = Preprocessor.chunking(text)
 
@@ -62,7 +62,16 @@ class Preprocessor:
     def preprocess_app_reviews(review: dict):
         content = review.get("content", "")
 
-        text = Preprocessor.clean_text(content, remove_emoji = False)
+        text = Preprocessor.clean_text(str(content), remove_emoji = False)
+
+        chunks = Preprocessor.chunking(text)
+
+        return chunks
+
+    def preprocess_app_ocr_captions(review: dict):
+        content = review.get("caption", "")
+
+        text = Preprocessor.clean_text(str(content), remove_emoji = True)
 
         chunks = Preprocessor.chunking(text)
 

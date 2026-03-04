@@ -30,10 +30,14 @@ class Config:
         "skill development", "skill learning","career learning", "professional learning", "soft skills","communication skills", "critical thinking", "problem solving", "personal development",
     ]
 
+    EXCLUDE_GENRE = [
+        "Music & Audio", "Casual", "Card", "Lifestyle", "Parenting", "Health & Fitness", "Puzzle", "Travel & Local", "Finance", "Social", "Tools", "Action", "Entertainment", "Art & Design", "Personalization", "Role Playing", "Simulation", "Events", "Puzzle", "Communication", "Arcade", "Business", "Food & Drink", "Photography", "Maps & Navigation", "Music", "Sports", "Board", "Weather", "House & Home", "Racing", "Strategy", "Adventure", "Shopping", "Video Players & Editors", "Comics",  "Productivity", "Auto & Vehicles", "Dating", "Casino", "Beauty"
+        ]
+
     CHUNK_SIZE = 1200
     CHUNK_OVERLAP = 150
 
     INDEX_NAME = "pedagogical-google-play-apps"
     APP_INFO_NAMESPACE = "app-info"
     APP_REVIEWS_NAMESPACE = "reviews"
-    APP_CONTENT_NAMESPACE = "ocr-captions"
+    APPS_OCR_CAPTIONS_NAMESPACE = "ocr-captions"
