@@ -1,14 +1,15 @@
 class Config:
     APPS_DATA_FILENAME = "./data/apps_data.json"
-    REVIEWS_DATA_FILENAME = "../data/reviews_data.json"
-    APPS_ID_FILENAME  = "../data/app_ids.txt"
-    APPS_OCR_CAPTIONS_FILENAME  = "../data/app_ocr_captions.csv"
+    REVIEWS_DATA_FILENAME = "./data/reviews_data.json"
+    APPS_ID_FILENAME  = "./data/app_ids.txt"
+    APPS_OCR_CAPTIONS_FILENAME  = "./data/app_ocr_captions.csv"
 
     COUNTRIES_LIST = ['us', 'id', 'sg', 'my', 'ph']
+    LANGUAGE_LIST = ['en', 'id']
 
     KEYWORDS_LIST = [
         # general
-        "education", "learning", "course", "teach", "online course", "study companion", "school planner", "homework helper", "distance learning", "micro learning", "brain training", "exam", "exam preparation",
+        "education", "learning", "course", "teach", "online course", "homework helper",  "distance learning", "micro learning", "brain training", "exam", "exam preparation", "pedagogical", "e-learning"
         
         # STEM
         "science education", "coding", "coding for kids", "preschool games", "dictionary", "study-aids", "math", "anatomy", "ethical hacking", "STEM", "robotics", "programming", "computer science", "artificial intelligence", "machine learning", "data science", "cybersecurity", "space exploration", "environmental science", "3D modeling", "virtual labs", 

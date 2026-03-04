@@ -12,18 +12,21 @@ class AppsScraper:
             print(f"Searching for keyword: {keyword}")
             time.sleep(1) 
             for country in Config.COUNTRIES_LIST:
-                try:
-                    applications = search(
-                        keyword,
-                        lang='en',
-                        country=country,
+                for language in Config.LANGUAGE_LIST:
+                    try:
+                        applications = search(
+                            keyword,
+                            lang = language,
+                            country = country,
                         n_hits=200,
                     )
-                except Exception as e:
-                    continue
+                    except Exception as e:
+                        continue
 
-            for application in applications:
-                results.add(application['appId'])
+                    for application in applications:
+                        app_id = application.get("appId")
+                        if app_id:
+                            results.add(app_id)
 
         print(f"Found unique apps count: {len(results)}")
         return results
@@ -78,5 +81,6 @@ class AppsScraper:
 
         print(f"Got unique apps count: {len(APP_IDS)}")
 
-        FileHandler.save_app_ids_to_txt(APP_IDS)
-        FileHandler.save_data_to_json(APPS, filename =  Config.APPS_DATA_FILENAME)
+        # FileHandler.save_app_ids_to_txt(APP_IDS)
+        # FileHandler.save_data_to_json(APPS, filename =  Config.APPS_DATA_FILENAME)
+        return APPS

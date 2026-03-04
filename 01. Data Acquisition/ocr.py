@@ -35,7 +35,7 @@ class VisualCaptioning:
 
         return output
 
-def generate_caption_from_apps_screenshots(apps : list, filename = Config.APPS_SCREENSHOTS_CAPTIONS_FILENAME, model_name="Qwen/Qwen2VL-7B-Instruct", device="cuda" if torch.cuda.is_available() else "cpu"):
+def generate_caption_from_apps_screenshots(apps : list, filename = Config.APPS_OCR_CAPTIONS_FILENAME, model_name="Qwen/Qwen2VL-7B-Instruct", device="cuda" if torch.cuda.is_available() else "cpu"):
     processor = Qwen2VLProcessor.from_pretrained(model_name)
     model = Qwen2VLForConditionalGeneration.from_pretrained(model_name).to(device)
     prompt = "Generate a short, high-signal caption describing only the main functional features visible in this mobile app screenshot. Focus on core educational tools (e.g., quiz types, exercises, progress indicators, learning modules, audio practice, streak tracking). Ignore decorative UI elements, colors, and layout details unless essential. Be precise and under 25 words"
