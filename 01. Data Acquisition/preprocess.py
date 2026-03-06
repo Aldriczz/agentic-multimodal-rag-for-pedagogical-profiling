@@ -73,6 +73,4 @@ class Preprocessor:
 
         text = Preprocessor.clean_text(str(content), remove_emoji = True)
 
-        chunks = Preprocessor.chunking(text)
-
-        return chunks
+        return text

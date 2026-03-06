@@ -26,7 +26,7 @@ def load_datas():
     apps = FileHandler.load_data_from_json(filename = Config.APPS_DATA_FILENAME)
     reviews = FileHandler.load_data_from_json(filename = Config.REVIEWS_DATA_FILENAME)
     ocr_captions = FileHandler.load_data_from_csv(filename = Config.APPS_OCR_CAPTIONS_FILENAME)
-
+    
     return apps, reviews, ocr_captions
 
 def delete_namespace():

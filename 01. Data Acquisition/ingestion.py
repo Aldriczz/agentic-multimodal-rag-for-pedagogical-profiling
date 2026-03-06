@@ -80,16 +80,15 @@ class Ingestion:
         records = []
 
         for ocr in ocr_captions:
-            chunks = Preprocessor.preprocess_app_ocr_captions(ocr)
-            for i, chunk in enumerate(chunks):
-                if len(chunk) == 0:
-                    continue
-                records.append({
-                    "id": f"{ocr['app_id']}__ocr_caption__{i}",
-                    "appId": ocr["app_id"],
-                    "content": chunk,
-                    "screenshotUrl": ocr["screenshot"] or "",
-                })
+            text = Preprocessor.preprocess_app_ocr_captions(ocr)
+            if len(text) == 0:
+                continue
+            records.append({
+                "id": ocr["caption_id"],
+                "appId": ocr["app_id"],
+                "content": text,
+                "screenshotUrl": ocr["screenshot"] or "",
+            })
         
         Ingestion.batch_upsert(Ingestion.get_index(), Config.APPS_OCR_CAPTIONS_NAMESPACE, records)
 
@@ -105,7 +104,7 @@ class Ingestion:
             if count % 15 == 0:
                 time.sleep(60)
 
-        print(f"Upserted {count} records to namespace {namespace}")
+        print(f"Upserted {len(records)} records to namespace {namespace}")
 
     def upsert_all(apps : list, reviews : list, ocr_captions : list):
         print("Ingesting app info. . . . . .")
