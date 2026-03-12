@@ -2,7 +2,7 @@ class Config:
     APPS_DATA_FILENAME = "./data/apps_data.json"
     REVIEWS_DATA_FILENAME = "./data/reviews_data.json"
     APPS_ID_FILENAME  = "./data/app_ids.txt"
-    APPS_OCR_CAPTIONS_FILENAME  = "./data/app_ocr_captions.csv"
+    APPS_IMAGE_CAPTIONS_FILENAME  = "./data/app_image_captions.csv"
 
     COUNTRIES_LIST = ['us', 'id', 'sg', 'my', 'ph']
     LANGUAGE_LIST = ['en', 'id']
@@ -40,4 +40,4 @@ class Config:
     INDEX_NAME = "pedagogical-google-play-apps"
     APP_INFO_NAMESPACE = "app-info"
     APP_REVIEWS_NAMESPACE = "reviews"
-    APPS_OCR_CAPTIONS_NAMESPACE = "ocr-captions"
+    APPS_IMAGE_CAPTIONS_NAMESPACE = "image-captions"

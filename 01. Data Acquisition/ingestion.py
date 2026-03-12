@@ -76,21 +76,21 @@ class Ingestion:
                 })
         Ingestion.batch_upsert(Ingestion.get_index(), Config.APP_REVIEWS_NAMESPACE, records)
 
-    def upsert_app_ocr_caption(ocr_captions : list):
+    def upsert_app_image_caption(image_captions : list):
         records = []
 
-        for ocr in ocr_captions:
-            text = Preprocessor.preprocess_app_ocr_captions(ocr)
+        for image in image_captions:
+            text = Preprocessor.preprocess_app_image_captions(image)
             if len(text) == 0:
                 continue
             records.append({
-                "id": ocr["caption_id"],
-                "appId": ocr["app_id"],
+                "id": image["caption_id"],
+                "appId": image["app_id"],
                 "content": text,
-                "screenshotUrl": ocr["screenshot"] or "",
+                "screenshotUrl": image["screenshot"] or "",
             })
         
-        Ingestion.batch_upsert(Ingestion.get_index(), Config.APPS_OCR_CAPTIONS_NAMESPACE, records)
+        Ingestion.batch_upsert(Ingestion.get_index(), Config.APPS_image_CAPTIONS_NAMESPACE, records)
 
     def batch_upsert(index, namespace : str, records : list, batch_size : int = 96):
         count = 0
@@ -106,10 +106,10 @@ class Ingestion:
 
         print(f"Upserted {len(records)} records to namespace {namespace}")
 
-    def upsert_all(apps : list, reviews : list, ocr_captions : list):
+    def upsert_all(apps : list, reviews : list, image_captions : list):
         print("Ingesting app info. . . . . .")
         Ingestion.upsert_app_info(apps)
         print("Ingesting app reviews. . . . . .")
         Ingestion.upsert_app_reviews(reviews)
-        print("Ingesting app ocr captions. . . . . .")
-        Ingestion.upsert_app_ocr_caption(ocr_captions)
+        print("Ingesting app image captions. . . . . .")
+        Ingestion.upsert_app_image_caption(image_captions)

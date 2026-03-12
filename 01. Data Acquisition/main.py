@@ -1,6 +1,6 @@
 from apps_scraper import AppsScraper
 from reviews_scraper import ReviewsScraper
-from ocr import VisualCaptioning
+from image_captioning import VisualCaptioning
 from ingestion import Ingestion
 from others.utils import FileHandler
 from others.config import Config
@@ -13,25 +13,25 @@ def __main__():
     reviews = ReviewsScraper.get_reviews_by_app_id(apps)
 
     # Step 3: Generate visual captions
-    ocr_captions = VisualCaptioning.generate_caption_from_apps_screenshots(apps)
+    image_captions = VisualCaptioning.generate_caption_from_apps_screenshots(apps)
 
     # (load datas)
-    # apps, reviews, ocr_captions = load_datas()
+    # apps, reviews, image_captions = load_datas()
 
     # Step 4: Upsert data to Pinecone
-    Ingestion.upsert_all(apps, reviews, ocr_captions)
+    Ingestion.upsert_all(apps, reviews, image_captions)
 
 
 def load_datas():
     apps = FileHandler.load_data_from_json(filename = Config.APPS_DATA_FILENAME)
     reviews = FileHandler.load_data_from_json(filename = Config.REVIEWS_DATA_FILENAME)
-    ocr_captions = FileHandler.load_data_from_csv(filename = Config.APPS_OCR_CAPTIONS_FILENAME)
+    image_captions = FileHandler.load_data_from_csv(filename = Config.APPS_IMAGE_CAPTIONS_FILENAME)
     
-    return apps, reviews, ocr_captions
+    return apps, reviews, image_captions_captions
 
 def delete_namespace():
     index = Ingestion.get_index()
-    index.delete(delete_all = True, namespace = Config.APPS_OCR_CAPTIONS_NAMESPACE)
+    index.delete(delete_all = True, namespace = Config.APPS_IMAGE_CAPTIONS_NAMESPACE)
 
 if __name__ == "__main__":
     __main__()

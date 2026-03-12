@@ -22,7 +22,7 @@ class FileHandler:
         print(f"Data loaded from {filename}")
         
     # csv
-    def load_data_from_csv(filename = Config.APPS_OCR_CAPTIONS_FILENAME):
+    def load_data_from_csv(filename = Config.APPS_IMAGE_CAPTIONS_FILENAME):
         with open(filename, "r", encoding="utf-8") as csvfile:
             reader = csv.DictReader(csvfile)
             return [row for row in reader]

@@ -68,7 +68,7 @@ class Preprocessor:
 
         return chunks
 
-    def preprocess_app_ocr_captions(review: dict):
+    def preprocess_app_image_captions(review: dict):
         content = review.get("caption", "")
 
         text = Preprocessor.clean_text(str(content), remove_emoji = True)

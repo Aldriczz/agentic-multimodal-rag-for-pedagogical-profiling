@@ -71,7 +71,7 @@ class AppsScraper:
             
             for country in Config.COUNTRIES_LIST:
                 try:
-                    app_data = app(app_id, lang='en', country=country)
+                    app_data = app(app_id, lang = 'en', country = country)
                     break 
                 except:
                     continue 
@@ -83,6 +83,6 @@ class AppsScraper:
 
         print(f"Got unique apps count: {len(APP_IDS)}")
 
-        # FileHandler.save_app_ids_to_txt(APP_IDS)
-        # FileHandler.save_data_to_json(APPS, filename =  Config.APPS_DATA_FILENAME)
+        FileHandler.save_app_ids_to_txt(APP_IDS)
+        FileHandler.save_data_to_json(APPS, filename =  Config.APPS_DATA_FILENAME)
         return APPS
