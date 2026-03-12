@@ -27,7 +27,7 @@ def load_datas():
     reviews = FileHandler.load_data_from_json(filename = Config.REVIEWS_DATA_FILENAME)
     image_captions = FileHandler.load_data_from_csv(filename = Config.APPS_IMAGE_CAPTIONS_FILENAME)
     
-    return apps, reviews, image_captions_captions
+    return apps, reviews, image_captions
 
 def delete_namespace():
     index = Ingestion.get_index()
