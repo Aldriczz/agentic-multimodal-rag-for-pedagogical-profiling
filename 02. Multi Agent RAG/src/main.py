@@ -9,10 +9,6 @@ from pydantic import SecretStr
 from src.state import GraphState
 from src.graph import compile_graph
 
-# Load environment variables
-load_dotenv()
-
-
 class PedagogicalProfilingRAG:
     """Main orchestrator for the pedagogical profiling multi-agent RAG system.
     
@@ -20,7 +16,7 @@ class PedagogicalProfilingRAG:
     1. Routing user intent
     2. Building learner profiles
     3. Retrieving relevant resources
-    4. Running parallel expert analyses (Application, UI/UX, Curriculum, Pedagogy)
+    4. Running parallel expert analyses (Application, UI/UX, Curriculum, Pedagogy, Reviews)
     5. Aggregating evaluations
     6. Synthesizing recommendations with justification
     7. Optimizing output quality with potential iteration loops
@@ -54,16 +50,6 @@ class PedagogicalProfilingRAG:
         user_input: str,
         max_iterations: int = 3,
     ) -> dict:
-        """Process a pedagogical profiling request through the multi-agent workflow.
-        
-        Args:
-            user_input: The user's educational query or profiling request
-            max_iterations: Maximum optimization iterations (default: 3)
-            
-        Returns:
-            Final state containing recommendation, justification, and quality assessment
-        """
-        # Create initial state
         initial_state: GraphState = {
             "user_input": user_input,
             "learner_profile": {},
@@ -72,11 +58,13 @@ class PedagogicalProfilingRAG:
             "ui_ux_analysis_evaluation": {},
             "curriculum_analysis_evaluation": {},
             "pedagogical_analysis_evaluation": {},
+            "review_analysis_evaluation": {},
             "aggregated_evaluation": {},
             "recommendation": "",
             "justification": "",
             "quality_assessment": {},
             "optimization_status": "unsatisfactory",
+            "recommended_apps": [],
             "iteration_count": 0,
             "max_iterations": max_iterations,
             "agent_messages": [],
@@ -84,7 +72,6 @@ class PedagogicalProfilingRAG:
         }
         
         try:
-            # Run the graph (async)
             result = await self.graph.ainvoke(initial_state)
             return result
         except Exception as e:
@@ -97,25 +84,13 @@ class PedagogicalProfilingRAG:
         user_input: str,
         max_iterations: int = 3,
     ) -> dict:
-        """Synchronous wrapper for process_request.
-        
-        Args:
-            user_input: The user's educational query or profiling request
-            max_iterations: Maximum optimization iterations (default: 3)
-            
-        Returns:
-            Final state containing recommendation, justification, and quality assessment
-        """
         return asyncio.run(self.process_request(user_input, max_iterations))
 
 async def main():
-    """Example usage of the pedagogical profiling RAG system."""
     load_dotenv()
     
-    # Initialize the system
     rag = PedagogicalProfilingRAG()
     
-    # Example query
     user_input = """
     I'm a high school student struggling with advanced mathematics, particularly calculus.
     I learn best through interactive visualizations and hands-on examples. I have about 
@@ -128,10 +103,38 @@ async def main():
     print("=" * 80)
     print(f"User Input: {user_input}\n")
     
-    # Process the request
     result = await rag.process_request(user_input, max_iterations=3)
-    
-    # Display results
+
+    print("\n" + "=" * 80)
+    print("Retrieved Docs")
+    print("=" * 80)
+    print(result.get("retrieved_docs", "No documents retrieved"))
+
+    print("\n" + "=" * 80)
+    print("Application Analysis Evaluation")
+    print("=" * 80)
+    print(result.get("application_analysis_evaluation", "No evaluation available"))
+
+    print("\n" + "=" * 80)
+    print("UI/UX Analysis Evaluation")
+    print("=" * 80)
+    print(result.get("ui_ux_analysis_evaluation", "No evaluation available"))
+
+    print("\n" + "=" * 80)
+    print("Curriculum Analysis Evaluation")
+    print("=" * 80)
+    print(result.get("curriculum_analysis_evaluation", "No evaluation available"))
+
+    print("\n" + "=" * 80)
+    print("Pedagogical Analysis Evaluation")
+    print("=" * 80)
+    print(result.get("pedagogical_analysis_evaluation", "No evaluation available"))
+
+    print("\n" + "=" * 80)
+    print("User Review Analysis Evaluation")
+    print("=" * 80)
+    print(result.get("review_analysis_evaluation", "No evaluation available"))
+
     print("\n" + "=" * 80)
     print("FINAL RECOMMENDATION")
     print("=" * 80)
@@ -148,12 +151,6 @@ async def main():
     assessment = result.get("quality_assessment", {})
     print(f"Status: {result.get('optimization_status', 'unknown')}")
     print(f"Details: {assessment}")
-    
-    print("\n" + "=" * 80)
-    print("EXECUTION METRICS")
-    print("=" * 80)
-    print(f"Iterations: {result.get('iteration_count', 0)}/{result.get('max_iterations', 3)}")
-    print(f"Total Messages: {len(result.get('agent_messages', []))}")
     
     if result.get("error_message"):
         print(f"\nError: {result['error_message']}")

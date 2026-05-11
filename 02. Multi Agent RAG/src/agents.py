@@ -1,6 +1,6 @@
 """Agent definitions for the multi-agent RAG workflow."""
 
-import asyncio
+from abc import ABC, abstractmethod
 import os
 import json
 from typing import Any
@@ -11,7 +11,7 @@ from pinecone import Pinecone
 from src.state import GraphState
 
 
-class BaseAgent:
+class BaseAgent(ABC):
     """Base class for all RAG agents."""
     
     def __init__(
@@ -26,6 +26,7 @@ class BaseAgent:
         self.name = name
         self.system_prompt = system_prompt
     
+    @abstractmethod
     async def invoke(self, state: GraphState) -> dict[str, Any]:
         """Process the state and return updates. Override in subclasses."""
         raise NotImplementedError(f"invoke() not implemented for {self.name}")
@@ -232,7 +233,6 @@ Variety is key: include subject keywords, feature keywords, and audience keyword
         learner_profile = state.get("learner_profile", {})
         user_input = state.get("user_input", "")
 
-        # Step 1: Use LLM to generate diverse text search queries
         messages = [
             SystemMessage(content=self.system_prompt),
             HumanMessage(
@@ -245,18 +245,12 @@ Variety is key: include subject keywords, feature keywords, and audience keyword
             response_json = json.loads(response.content)
             search_queries = response_json.get("search_queries", [user_input])
         except (json.JSONDecodeError, AttributeError):
-            # Fallback: use raw user input if LLM response isn't valid JSON
             search_queries = [user_input]
 
-        # Cap at 5 queries to keep latency reasonable
         search_queries = search_queries[:5]
         print(f"[RetrievalAgent] Search queries: {search_queries}")
 
-        # Step 2: Search all namespaces for each query and deduplicate by id
-        # app-info   → app name, description, developer, ratings, install count, price
-        # image-captions → screenshot visual descriptions (multimodal)
-        # reviews    → user sentiment (skipped by default to reduce API calls)
-        namespaces_to_search = ["app-info", "image-captions"]
+        namespaces_to_search = ["app-info", "image-captions", "reviews"]
         all_documents: list[dict[str, Any]] = []
         seen_ids: set[str] = set()
 
@@ -269,15 +263,12 @@ Variety is key: include subject keywords, feature keywords, and audience keyword
                         all_documents.append(doc)
                         seen_ids.add(doc_id)
 
-        # Step 3: Sort by relevance score, keep top 15
         all_documents = sorted(
             all_documents,
             key=lambda x: x.get("relevance_score", 0),
             reverse=True,
         )[:15]
 
-        # Step 4: Hard stop — do NOT continue with empty context.
-        # Downstream agents would hallucinate without real Pinecone data.
         if not all_documents:
             try:
                 stats = self.index.describe_index_stats()
@@ -539,6 +530,55 @@ Return a JSON analysis:
                 }
             ]
         }
+    
+class ReviewAnalysisAgent(BaseAgent):
+    """Review Analysis Agent: Evaluates user reviews and feedback."""
+    
+    def __init__(self, llm: BaseLanguageModel[Any], embedding: OpenAIEmbeddings):
+        super().__init__(
+            llm=llm,
+            embedding=embedding,
+            name="Review Analysis Agent",
+            system_prompt="""You are a Review Analysis Agent responsible for evaluating user reviews and feedback.
+Your task is to:
+1. Identify key themes and sentiments in user reviews
+2. Extract actionable insights for product improvement
+3. Assess the overall user satisfaction and experience
+
+Return a JSON analysis:
+{
+    "sentiment": "positive|neutral|negative",
+    "key_themes": [],
+    "actionable_insights": [],
+    "user_satisfaction": 0.0-1.0
+}"""
+        )
+    
+    async def invoke(self, state: GraphState) -> dict[str, Any]:
+        """Evaluate user reviews and feedback."""
+        retrieved_docs = state.get("retrieved_docs", [])
+        learner_profile = state.get("learner_profile", {})
+        
+        messages = [
+            SystemMessage(content=self.system_prompt),
+            HumanMessage(content=f"Analyze user reviews for learner: {learner_profile}\nResources: {retrieved_docs}")
+        ]
+        
+        response = await self.llm.ainvoke(messages)
+        
+        return {
+            "review_analysis_evaluation": {
+                "agent": self.name,
+                "analysis": response.content,
+            },
+            "agent_messages": [
+                {
+                    "agent": self.name,
+                    "role": "output",
+                    "content": response.content,
+                }
+            ]
+        }
 
 
 class EvaluationAggregatorAgent(BaseAgent):
@@ -566,7 +606,8 @@ Return a JSON aggregation:
         "application_analysis": { "score": 0.0-1.0, "weight": 0.25 },
         "ui_ux_analysis": { "score": 0.0-1.0, "weight": 0.20 },
         "curriculum_analysis": { "score": 0.0-1.0, "weight": 0.25 },
-        "pedagogical_analysis": { "score": 0.0-1.0, "weight": 0.30 }
+        "pedagogical_analysis": { "score": 0.0-1.0, "weight": 0.30 },
+        "review_analysis": { "score": 0.0-1.0, "weight": 0.10 }
     },
     "weighted_score": 0.0-1.0
 }"""
@@ -574,12 +615,12 @@ Return a JSON aggregation:
     
     async def invoke(self, state: GraphState) -> dict[str, Any]:
         """Aggregate evaluations from all parallel agents."""
-        # Read from the correct individual state keys populated by each analysis agent
         evaluations = {
             "application_analysis": state.get("application_analysis_evaluation", {}),
             "ui_ux_analysis":       state.get("ui_ux_analysis_evaluation", {}),
             "curriculum_analysis":  state.get("curriculum_analysis_evaluation", {}),
             "pedagogical_analysis": state.get("pedagogical_analysis_evaluation", {}),
+            "review_analysis":      state.get("review_analysis_evaluation", {}),
         }
         
         messages = [
@@ -640,33 +681,16 @@ Available Resources: {retrieved_docs}""")
         
         response = await self.llm.ainvoke(messages)
         
-        # Truncate to ensure word limit compliance
-        recommendation = self._truncate_to_words(response.content, max_words=50, max_sentences=3)
-        
         return {
-            "recommendation": recommendation,
+            "recommendation": response.content,
             "agent_messages": [
                 {
                     "agent": self.name,
                     "role": "output",
-                    "content": recommendation,
+                    "content": response.content,
                 }
             ]
         }
-    
-    def _truncate_to_words(self, text: str, max_words: int = 50, max_sentences: int = 3) -> str:
-        """Truncate text to max words and sentences."""
-        # Split into sentences
-        sentences = [s.strip() for s in text.split('.') if s.strip()]
-        sentences = sentences[:max_sentences]  # Limit sentences
-        
-        # Rejoin and count words
-        truncated = '.'.join(sentence for sentence in sentences[:max_sentences]) + ('.' if sentences else '')
-        words = truncated.split()
-        if len(words) > max_words:
-            truncated = ' '.join(words[:max_words]) + '.'
-        
-        return truncated
 
 
 class JustificationSynthesizerAgent(BaseAgent):
@@ -707,33 +731,16 @@ Evaluation Summary: {aggregated_eval}""")
         
         response = await self.llm.ainvoke(messages)
         
-        # Truncate to ensure word limit compliance
-        justification = self._truncate_to_words(response.content, max_words=50, max_sentences=3)
-        
         return {
-            "justification": justification,
+            "justification": response.content,
             "agent_messages": [
                 {
                     "agent": self.name,
                     "role": "output",
-                    "content": justification,
+                    "content": response.content,
                 }
             ]
         }
-    
-    def _truncate_to_words(self, text: str, max_words: int = 50, max_sentences: int = 3) -> str:
-        """Truncate text to max words and sentences."""
-        # Split into sentences
-        sentences = [s.strip() for s in text.split('.') if s.strip()]
-        sentences = sentences[:max_sentences]  # Limit sentences
-        
-        # Rejoin and count words
-        truncated = '.'.join(sentence for sentence in sentences[:max_sentences]) + ('.' if sentences else '')
-        words = truncated.split()
-        if len(words) > max_words:
-            truncated = ' '.join(words[:max_words]) + '.'
-        
-        return truncated
 
 
 class EvaluatorOptimizerAgent(BaseAgent):
@@ -779,41 +786,23 @@ Iteration: {iteration_count}""")
         
         response = await self.llm.ainvoke(messages)
         
-        # Truncate to enforce word limit compliance
-        quality_assessment = self._truncate_to_words(response.content, max_words=50, max_sentences=3)
-        
-        # Parse status from response (simplified - in production use proper JSON parsing)
         status = "satisfactory" if "satisfactory" in response.content.lower() else "unsatisfactory"
         
         return {
             "quality_assessment": {
-                "evaluation": quality_assessment,
+                "evaluation": response.content,
                 "status": status,
             },
             "optimization_status": status,
-            "iteration_count": iteration_count + 1,  # increment so max_iterations guard works
+            "iteration_count": iteration_count + 1,
             "agent_messages": [
                 {
                     "agent": self.name,
                     "role": "output",
-                    "content": quality_assessment,
+                    "content": response.content,
                 }
             ]
         }
-    
-    def _truncate_to_words(self, text: str, max_words: int = 50, max_sentences: int = 3) -> str:
-        """Truncate text to max words and sentences."""
-        # Split into sentences
-        sentences = [s.strip() for s in text.split('.') if s.strip()]
-        sentences = sentences[:max_sentences]  # Limit sentences
-        
-        # Rejoin and count words
-        truncated = '.'.join(sentence for sentence in sentences[:max_sentences]) + ('.' if sentences else '')
-        words = truncated.split()
-        if len(words) > max_words:
-            truncated = ' '.join(words[:max_words]) + '.'
-        
-        return truncated
 
 
 def create_agents(llm: BaseLanguageModel[Any], embedding: OpenAIEmbeddings) -> dict[str, BaseAgent]:
@@ -826,6 +815,7 @@ def create_agents(llm: BaseLanguageModel[Any], embedding: OpenAIEmbeddings) -> d
         "ui_ux_analysis": UIUXAnalysisAgent(llm, embedding),
         "curriculum_analysis": CurriculumAlignmentAgent(llm, embedding),
         "pedagogical_analysis": PedagogicalExpertAgent(llm, embedding),
+        "review_analysis": ReviewAnalysisAgent(llm, embedding),
         "aggregator": EvaluationAggregatorAgent(llm, embedding),
         "recommendation": RecommendationSynthesizerAgent(llm, embedding),
         "justification": JustificationSynthesizerAgent(llm, embedding),
